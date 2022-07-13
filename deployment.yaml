@@ -27,9 +27,6 @@ spec:
         resources: {}
       - name: sidecar-container-logstash
         image: docker.elastic.co/logstash/logstash:7.8.0
-        env:
-          - name: DOCKER_DEFAULT_PLATFORM
-            value: linux/amd64
         ports:
           - containerPort: 25826
           - containerPort: 5044

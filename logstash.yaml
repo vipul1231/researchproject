@@ -1,51 +1,65 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   labels:
     app: logstash
   name: logstash
 spec:
-  containers:
-    - image: docker.elastic.co/logstash/logstash:7.8.0
-      name: logstash
-      ports:
-        - containerPort: 25826
-        - containerPort: 5044
-      env:
-        - name: ES_HOSTS
-          value: "https://localhost:9200"
-        - name: ES_USER
-          value: "elastic"
-        - name: ES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: elasticsearch-es-elastic-user
-              key: elastic
-      resources: {}
-      volumeMounts:
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      hostname: logstash
+      containers:
+      - image: docker.elastic.co/logstash/logstash-oss:7.7.1
+        name: logstash
+        ports:
+          - containerPort: 5044
+        volumeMounts:
+          - name: shared-logs
+            mountPath: /tmp/
+          - name: config-volume
+            mountPath: /usr/share/logstash/config
+          - name: logstash-pipeline-volume
+            mountPath: /usr/share/logstash/pipeline
+      volumes:
+        - name: shared-logs
+          emptyDir: { }
         - name: config-volume
-          mountPath: /usr/share/logstash/config
+          configMap:
+            name: logstash-configmap
+            items:
+              - key: logstash.yml
+                path: logstash.yml
         - name: logstash-pipeline-volume
-          mountPath: /usr/share/logstash/pipeline
-        - name: cert-ca
-          mountPath: "/etc/logstash/certificates"
-          readOnly: true
-  restartPolicy: OnFailure
-  volumes:
-    - name: config-volume
-      configMap:
-        name: logstash-configmap
-        items:
-          - key: logstash.yml
-            path: logstash.yml
-    - name: logstash-pipeline-volume
-      configMap:
-        name: logstash-configmap
-        items:
-          - key: logstash.conf
-            path: logstash.conf
-    - name: cert-ca
-      secret:
-        secretName: elasticsearch-es-http-certs-public
-
+          configMap:
+            name: logstash-configmap
+            items:
+              - key: logstash.conf
+                path: logstash.conf
 status: {}
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: logstash
+spec:
+  type: NodePort
+  selector:
+    app: logstash
+  ports:
+    - protocol: TCP
+      port: 5044
+      targetPort: 5044
+      nodePort: 30103
+      name: filebeat
+    - protocol: TCP
+      port: 9600
+      targetPort: 9600
+      name: logstash
+---
