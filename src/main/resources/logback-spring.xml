@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <property name="LOG_FILE" value="rsproject" />
+
+    <springProfile name="dev">
+        <property name="LOG_PATH" value="/tmp" />
+    </springProfile>
+
+    <springProfile name="!dev">
+        <property name="LOG_PATH" value="/tmp/" />
+    </springProfile>
+
+<!--    <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+<!--        <file>${LOG_PATH}${LOG_FILE}.log</file>-->
+<!--        <append>true</append>-->
+<!--        <encoder>-->
+<!--            <pattern>%date{ISO8601,Etc/UTC} %t %-5level %logger %msg%n</pattern>-->
+<!--        </encoder>-->
+<!--        <rollingPolicy-->
+<!--                class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
+<!--            <fileNamePattern>${LOG_PATH}${LOG_FILE}_%d{yyyy-MM-dd}.log</fileNamePattern>-->
+
+<!--            &lt;!&ndash; keep 60 days' worth of history capped at 10GB total size &ndash;&gt;-->
+<!--            <maxHistory>30</maxHistory>-->
+<!--            <totalSizeCap>20GB</totalSizeCap>-->
+<!--        </rollingPolicy>-->
+<!--    </appender>-->
+
+    <appender name="stash" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <!-- provides the timestamp -->
+                <timestamp/>
+
+                <!-- provides the version -->
+                <version/>
+                <message/>
+
+                <!-- provides the fields in the configured pattern -->
+                <pattern>
+                    <!-- the pattern that defines what to include -->
+                    <pattern>
+                        { "level": "%level" }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+
+        <rollingPolicy
+                class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}${LOG_FILE}_%d{yyyy-MM-dd}.log</fileNamePattern>
+
+            <!-- keep 60 days' worth of history capped at 10GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>20GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+
+    <appender name="Console"
+              class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>
+                %black(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%C{1.}): %msg%n%throwable
+            </Pattern>
+        </layout>
+    </appender>
+
+
+    <root level="INFO">
+        <!--    <root level="DEBUG">-->
+<!--        <appender-ref ref="file" />-->
+        <appender-ref ref="Console" />
+        <appender-ref ref="stash"/>
+    </root>
+
+</configuration>

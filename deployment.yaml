@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: rsproject
+  name: rsproject
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rsproject
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: rsproject
+    spec:
+      containers:
+      - image: rsproject
+        volumeMounts:
+          - name: shared-logs
+            mountPath: /tmp/
+        imagePullPolicy: Never
+        name: rsproject
+        resources: {}
+      - name: sidecar-container-logstash
+        image: docker.elastic.co/logstash/logstash:7.8.0
+        env:
+          - name: DOCKER_DEFAULT_PLATFORM
+            value: linux/amd64
+        ports:
+          - containerPort: 25826
+          - containerPort: 5044
+        volumeMounts:
+          - name: shared-logs
+            mountPath: /tmp/
+          - name: config-volume
+            mountPath: /usr/share/logstash/config
+          - name: logstash-pipeline-volume
+            mountPath: /usr/share/logstash/pipeline
+      volumes:
+        - name: shared-logs
+          emptyDir: { }
+        - name: config-volume
+          configMap:
+            name: logstash-configmap
+            items:
+              - key: logstash.yml
+                path: logstash.yml
+        - name: logstash-pipeline-volume
+          configMap:
+            name: logstash-configmap
+            items:
+              - key: logstash.conf
+                path: logstash.conf
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: rsproject
+  name: rsproject
+spec:
+  ports:
+  - name: 8080-8080
+    port: 8085
+    protocol: TCP
+    targetPort: 8085
+  selector:
+    app: rsproject
+  type: ClusterIP
+status:
+  loadBalancer: {}
